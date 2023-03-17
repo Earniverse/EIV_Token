@@ -67,8 +67,12 @@ contract EIVToken is ERC20, ERC20Burnable, AccessControl, Ownable {
             return 0;
         }
         uint256 elapsedTime = block.timestamp - lockEndTime;
-        uint256 unlockedAmount = lockedBalance * elapsedTime / releasePeriod;
-        return unlockedAmount;
+
+        if (elapsedTime > releasePeriod) {
+            return lockedBalance;
+        } else {
+            return lockedBalance * elapsedTime / releasePeriod;
+        }
     }
 
     function claimTokens() external onlyRole(MINTER_ROLE) {
