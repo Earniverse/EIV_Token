@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./EIVToken.sol";
 
 contract MultiSigWallet is Ownable {
-    event SubmitTransaction(address indexed owner, uint256 indexed txIndex, address indexed from, bytes32 data);
-    event ConfirmTransaction(address indexed owner, uint256 indexed txIndex);
-    event RevokeConfirmation(address indexed owner, uint256 indexed txIndex);
-    event ExecuteTransaction(address indexed owner, uint256 indexed txIndex);
+    event SubmitTransaction(address indexed approver, uint256 indexed txIndex, address indexed from, bytes32 data);
+    event ConfirmTransaction(address indexed approver, uint256 indexed txIndex, uint256 indexed numConfirmations);
+    event RevokeConfirmation(address indexed approver, uint256 indexed txIndex);
+    event ExecuteTransaction(address indexed approver, uint256 indexed txIndex);
 
     address[] public approvers;
     mapping(address => bool) public isApprover;
@@ -22,7 +21,6 @@ contract MultiSigWallet is Ownable {
         uint256 numConfirmations;
     }
 
-    // mapping from tx index => owner => bool
     mapping(uint256 => mapping(address => bool)) public isConfirmed;
 
     Transaction[] public transactions;
@@ -65,34 +63,33 @@ contract MultiSigWallet is Ownable {
         _eivToken = EIVToken(eivAddress);
 
         for (uint256 i = 0; i < _approvers.length; i++) {
-            address owner = _approvers[i];
+            address approver = _approvers[i];
 
-            require(owner != address(0), "invalid owner");
-            require(!isApprover[owner], "owner not unique");
+            require(approver != address(0), "invalid approver");
+            require(!isApprover[approver], "approver not unique");
 
-            isApprover[owner] = true;
-            approvers.push(owner);
+            isApprover[approver] = true;
+            approvers.push(approver);
         }
 
         numConfirmationsRequired = _numConfirmationsRequired;
     }
 
     function submitTransaction(
-        address _from,
         bytes32 _data
     ) public onlyApprover {
         uint256 txIndex = transactions.length;
 
         transactions.push(
             Transaction({
-                from: _from,
+                from: msg.sender,
                 data: _data,
                 executed: false,
                 numConfirmations: 0
             })
         );
 
-        emit SubmitTransaction(msg.sender, txIndex, _from, _data);
+        emit SubmitTransaction(msg.sender, txIndex, msg.sender, _data);
     }
 
     function confirmTransaction(
@@ -103,7 +100,7 @@ contract MultiSigWallet is Ownable {
         transaction.numConfirmations += 1;
         isConfirmed[_txIndex][msg.sender] = true;
 
-        emit ConfirmTransaction(msg.sender, _txIndex);
+        emit ConfirmTransaction(msg.sender, _txIndex, transaction.numConfirmations);
     }
 
     function executeTransaction(
@@ -172,5 +169,9 @@ contract MultiSigWallet is Ownable {
             transaction.executed,
             transaction.numConfirmations
         );
+    }
+
+    function getTransactions() public view returns (Transaction[] memory) {
+        return transactions;
     }
 }
