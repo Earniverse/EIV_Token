@@ -67,34 +67,53 @@ contract EIVToken is ERC20, ERC20Burnable, AccessControl, Ownable {
             return 0;
         }
         uint256 elapsedTime = block.timestamp - lockEndTime;
-        uint256 unlockedAmount = lockedBalance * elapsedTime / releasePeriod;
-        return unlockedAmount;
+
+        if (elapsedTime >= releasePeriod) {
+            return lockedBalance;
+        } else {
+            return lockedBalance * elapsedTime / releasePeriod;
+        }
     }
 
     function claimTokens() external onlyRole(MINTER_ROLE) {
-        uint256 teamUnlockedAmount = _calculateUnlockedAmount(_teamLockedBalance, _teamLockEndTime, RELEASE_PERIOD_TEAM);
-        uint256 advisorUnlockedAmount = _calculateUnlockedAmount(_advisorLockedBalance, _advisorLockEndTime, RELEASE_PERIOD_ADVISOR);
-        uint256 communityUnlockedAmount = _calculateUnlockedAmount(_communityLockedBalance, _communityLockEndTime, RELEASE_PERIOD_COMMUNITY);
+        uint256 teamAmount = _calculateUnlockedAmount(TEAM_TOKENS, _teamLockEndTime, RELEASE_PERIOD_TEAM);        
+        uint256 advisorAmount = _calculateUnlockedAmount(ADVISOR_TOKENS, _advisorLockEndTime, RELEASE_PERIOD_ADVISOR);
+        uint256 communityAmount = _calculateUnlockedAmount(COMMUNITY_TOKENS, _communityLockEndTime, RELEASE_PERIOD_COMMUNITY);
         uint256 unlockedBalance = _unlockedBalance;
+
+        uint256 teamUnlockedAmount = teamAmount - (TEAM_TOKENS - _teamLockedBalance);
+        uint256 advisorUnlockedAmount = advisorAmount - (ADVISOR_TOKENS - _advisorLockedBalance);
+        uint256 communityUnlockedAmount = communityAmount - (COMMUNITY_TOKENS - _communityLockedBalance);
+
         uint256 totalUnlockedAmount = unlockedBalance + teamUnlockedAmount + advisorUnlockedAmount + communityUnlockedAmount;
 
         require(totalUnlockedAmount > 0, "No tokens to claim");
-        _teamLockedBalance = _teamLockedBalance - teamUnlockedAmount;
-        _advisorLockedBalance = _advisorLockedBalance - advisorUnlockedAmount;
-        _communityLockedBalance = _communityLockedBalance - communityUnlockedAmount;
+        _teamLockedBalance -= teamUnlockedAmount;
+        _advisorLockedBalance -= advisorUnlockedAmount;
+        _communityLockedBalance -= communityUnlockedAmount;
         _unlockedBalance = 0;
 
-        _mint(msg.sender, totalUnlockedAmount);
+        _mint(address(this), totalUnlockedAmount);
 
-        transfer(companyWallet, unlockedBalance);
-        transfer(teamWallet, teamUnlockedAmount);
-        transfer(communityWallet, communityUnlockedAmount);
-        transfer(advisoryWallet, advisorUnlockedAmount);
+        if (unlockedBalance > 0) {
+            _transfer(address(this), companyWallet, unlockedBalance);
+            emit UnlockCompanyTokens(companyWallet, unlockedBalance);
+        }
 
-        emit UnlockTeamTokens(msg.sender, teamUnlockedAmount);
-        emit UnlockAdvisorTokens(msg.sender, advisorUnlockedAmount);
-        emit UnlockCommunityTokens(msg.sender, communityUnlockedAmount);
-        emit UnlockCompanyTokens(msg.sender, unlockedBalance);
+        if (teamUnlockedAmount > 0) {
+            _transfer(address(this), teamWallet, teamUnlockedAmount);
+            emit UnlockTeamTokens(teamWallet, teamUnlockedAmount);
+        }
+
+        if (communityUnlockedAmount > 0) {
+            _transfer(address(this), communityWallet, communityUnlockedAmount);
+            emit UnlockCommunityTokens(communityWallet, communityUnlockedAmount);
+        }
+
+        if (advisorUnlockedAmount > 0) {
+            _transfer(address(this), advisoryWallet, advisorUnlockedAmount);
+            emit UnlockAdvisorTokens(advisoryWallet, advisorUnlockedAmount);
+        }
     }
 
     function lockedCompanyBalance() external view returns (uint256) {
@@ -115,29 +134,32 @@ contract EIVToken is ERC20, ERC20Burnable, AccessControl, Ownable {
 
     function unlockTeamTokens() external onlyRole(MINTER_ROLE) {
         require(block.timestamp >= _teamLockEndTime, "Team tokens are still locked");
-        uint256 teamUnlockedAmount = _calculateUnlockedAmount(_teamLockedBalance, _teamLockEndTime, RELEASE_PERIOD_TEAM);
+        uint256 teamAmount = _calculateUnlockedAmount(TEAM_TOKENS, _teamLockEndTime, RELEASE_PERIOD_TEAM);
+        uint256 teamUnlockedAmount = teamAmount - (TEAM_TOKENS - _teamLockedBalance);
         require(teamUnlockedAmount > 0, "No team tokens to unlock");
         _teamLockedBalance -= teamUnlockedAmount;
         _mint(teamWallet, teamUnlockedAmount);
-        emit UnlockTeamTokens(msg.sender, teamUnlockedAmount);
+        emit UnlockTeamTokens(teamWallet, teamUnlockedAmount);
     }
 
     function unlockAdvisorTokens() external onlyRole(MINTER_ROLE) {
         require(block.timestamp >= _advisorLockEndTime, "Advisor tokens are still locked");
-        uint256 advisorUnlockedAmount = _calculateUnlockedAmount(_advisorLockedBalance, _advisorLockEndTime, RELEASE_PERIOD_ADVISOR);
+        uint256 advisorAmount = _calculateUnlockedAmount(ADVISOR_TOKENS, _advisorLockEndTime, RELEASE_PERIOD_ADVISOR);
+        uint256 advisorUnlockedAmount = advisorAmount - (ADVISOR_TOKENS - _advisorLockedBalance);
         require(advisorUnlockedAmount > 0, "No advisor tokens to unlock");
         _advisorLockedBalance -= advisorUnlockedAmount;
         _mint(advisoryWallet, advisorUnlockedAmount);
-        emit UnlockAdvisorTokens(msg.sender, advisorUnlockedAmount);
+        emit UnlockAdvisorTokens(advisoryWallet, advisorUnlockedAmount);
     }
 
     function unlockCommunityTokens() external onlyRole(MINTER_ROLE) {
         require(block.timestamp >= _communityLockEndTime, "Community tokens are still locked");
-        uint256 communityUnlockedAmount = _calculateUnlockedAmount(_communityLockedBalance, _communityLockEndTime, RELEASE_PERIOD_COMMUNITY);
+        uint256 communityAmount = _calculateUnlockedAmount(COMMUNITY_TOKENS, _communityLockEndTime, RELEASE_PERIOD_COMMUNITY);
+        uint256 communityUnlockedAmount = communityAmount - (COMMUNITY_TOKENS - _communityLockedBalance);
         require(communityUnlockedAmount > 0, "No community tokens to unlock");
         _communityLockedBalance -= communityUnlockedAmount;
         _mint(communityWallet, communityUnlockedAmount);
-        emit UnlockCommunityTokens(msg.sender, communityUnlockedAmount);
+        emit UnlockCommunityTokens(communityWallet, communityUnlockedAmount);
     }
 
     function setCompanyWallet(address _companyWallet) external onlyRole(MINTER_ROLE) {
