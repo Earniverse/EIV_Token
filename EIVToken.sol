@@ -41,6 +41,10 @@ contract EIVToken is ERC20, ERC20Burnable, AccessControl, Ownable {
     event UnlockTeamTokens(address indexed claimer, uint256 price);
     event UnlockAdvisorTokens(address indexed claimer, uint256 price);
     event UnlockCommunityTokens(address indexed claimer, uint256 price);
+    event UpdateCompanyWallet(address indexed previous, address indexed updated);
+    event UpdateTeamWallet(address indexed previous, address indexed updated);
+    event UpdateAdvisoryWallet(address indexed previous, address indexed updated);
+    event UpdatecommunityWallet(address indexed previous, address indexed updated);
 
     constructor(address _companyWallet, address _teamWallet, address _advisoryWallet, address _communityWallet) ERC20("EIV Token", "EIV") {
         // _mint(msg.sender, INITIAL_SUPPLY);
@@ -164,17 +168,21 @@ contract EIVToken is ERC20, ERC20Burnable, AccessControl, Ownable {
 
     function setCompanyWallet(address _companyWallet) external onlyRole(MINTER_ROLE) {
         companyWallet = _companyWallet;
+        emit UpdateCompanyWallet(companyWallet, _companyWallet);
     }
 
      function setTeamWallet(address _teamWallet) external onlyRole(MINTER_ROLE) {
         teamWallet = _teamWallet;
+        emit UpdateTeamWallet(teamWallet, _teamWallet);
     }
 
      function setAdvisoryWallet(address _advisoryWallet) external onlyRole(MINTER_ROLE) {
         advisoryWallet = _advisoryWallet;
+        emit UpdateAdvisoryWallet(advisoryWallet, _advisoryWallet);
     }
 
      function setCommunityWallet(address _communityWallet) external onlyRole(MINTER_ROLE) {
         communityWallet = _communityWallet;
+        emit UpdatecommunityWallet(communityWallet, _communityWallet);
     }
 }
