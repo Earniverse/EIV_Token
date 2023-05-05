@@ -165,24 +165,4 @@ contract EIVToken is ERC20, ERC20Burnable, AccessControl, Ownable {
         _mint(communityWallet, communityUnlockedAmount);
         emit UnlockCommunityTokens(communityWallet, communityUnlockedAmount);
     }
-
-    function setCompanyWallet(address _companyWallet) external onlyRole(MINTER_ROLE) {
-        companyWallet = _companyWallet;
-        emit UpdateCompanyWallet(companyWallet, _companyWallet);
-    }
-
-     function setTeamWallet(address _teamWallet) external onlyRole(MINTER_ROLE) {
-        teamWallet = _teamWallet;
-        emit UpdateTeamWallet(teamWallet, _teamWallet);
-    }
-
-     function setAdvisoryWallet(address _advisoryWallet) external onlyRole(MINTER_ROLE) {
-        advisoryWallet = _advisoryWallet;
-        emit UpdateAdvisoryWallet(advisoryWallet, _advisoryWallet);
-    }
-
-     function setCommunityWallet(address _communityWallet) external onlyRole(MINTER_ROLE) {
-        communityWallet = _communityWallet;
-        emit UpdatecommunityWallet(communityWallet, _communityWallet);
-    }
 }
