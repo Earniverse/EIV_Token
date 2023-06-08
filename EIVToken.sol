@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract EIVToken is ERC20, ERC20Burnable, AccessControl, Ownable {
+contract EIVToken is ERC20, ERC20Burnable, AccessControl {
     uint256 public constant INITIAL_SUPPLY = 10 * 10**9 * 10**18;
     uint256 public constant TEAM_TOKENS = 1 * 10**9 * 10**18;
     uint256 public constant ADVISOR_TOKENS = 0.9 * 10**9 * 10**18;
