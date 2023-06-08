@@ -54,7 +54,6 @@ contract EIVToken is ERC20, ERC20Burnable, AccessControl, Ownable {
     }
 
     constructor(address _companyWallet, address _teamWallet, address _advisoryWallet, address _communityWallet) ERC20("EIV Token", "EIV") {
-        _mint(msg.sender, INITIAL_SUPPLY);
         _setupRole(MINTER_ROLE, msg.sender);
 
         _unlockedBalance = UNLOCKED_TOKENS;
