@@ -3,7 +3,6 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract EIVToken is ERC20, ERC20Burnable, AccessControl, Ownable {
@@ -35,6 +34,8 @@ contract EIVToken is ERC20, ERC20Burnable, AccessControl, Ownable {
     uint256 private immutable _advisorLockEndTime;
     uint256 private immutable _communityLockEndTime;
 
+    address private _owner;
+
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     event UnlockCompanyTokens(address indexed claimer, uint256 price);
@@ -45,9 +46,15 @@ contract EIVToken is ERC20, ERC20Burnable, AccessControl, Ownable {
     event UpdateTeamWallet(address indexed previous, address indexed updated);
     event UpdateAdvisoryWallet(address indexed previous, address indexed updated);
     event UpdatecommunityWallet(address indexed previous, address indexed updated);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    modifier onlyOwner() {
+        require(owner() == _msgSender(), "Ownable: caller is not the owner");
+        _;
+    }
 
     constructor(address _companyWallet, address _teamWallet, address _advisoryWallet, address _communityWallet) ERC20("EIV Token", "EIV") {
-        // _mint(msg.sender, INITIAL_SUPPLY);
+        _mint(msg.sender, INITIAL_SUPPLY);
 
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(MINTER_ROLE, msg.sender);
@@ -64,6 +71,8 @@ contract EIVToken is ERC20, ERC20Burnable, AccessControl, Ownable {
         teamWallet = _teamWallet;
         advisoryWallet = _advisoryWallet;
         communityWallet = _communityWallet;
+
+        _transferOwnership(_msgSender());
     }
 
     function _calculateUnlockedAmount(uint256 lockedBalance, uint256 lockEndTime, uint256 releasePeriod) internal view returns (uint256) {
@@ -164,5 +173,23 @@ contract EIVToken is ERC20, ERC20Burnable, AccessControl, Ownable {
         _communityLockedBalance -= communityUnlockedAmount;
         _mint(communityWallet, communityUnlockedAmount);
         emit UnlockCommunityTokens(communityWallet, communityUnlockedAmount);
+    }
+
+    function _msgSender() internal view virtual returns (address) {
+        return msg.sender;
+    }
+
+    function owner() public view virtual returns (address) {
+        return _owner;
+    }
+
+    function renounceOwnership() public virtual onlyOwner {
+        _transferOwnership(address(0));
+    }
+
+    function _transferOwnership(address newOwner) internal virtual {
+        address oldOwner = _owner;
+        _owner = newOwner;
+        emit OwnershipTransferred(oldOwner, newOwner);
     }
 }
