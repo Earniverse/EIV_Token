@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract EIVToken is ERC20, ERC20Burnable, AccessControl {
+    address private _owner;
+
     uint256 public constant INITIAL_SUPPLY = 10 * 10**9 * 10**18;
     uint256 public constant TEAM_TOKENS = 1 * 10**9 * 10**18;
     uint256 public constant ADVISOR_TOKENS = 0.9 * 10**9 * 10**18;
@@ -34,8 +36,6 @@ contract EIVToken is ERC20, ERC20Burnable, AccessControl {
     uint256 private immutable _advisorLockEndTime;
     uint256 private immutable _communityLockEndTime;
 
-    address private _owner;
-
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
     event UnlockCompanyTokens(address indexed claimer, uint256 price);
@@ -46,14 +46,11 @@ contract EIVToken is ERC20, ERC20Burnable, AccessControl {
     event UpdateTeamWallet(address indexed previous, address indexed updated);
     event UpdateAdvisoryWallet(address indexed previous, address indexed updated);
     event UpdatecommunityWallet(address indexed previous, address indexed updated);
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-    modifier onlyOwner() {
-        require(owner() == _msgSender(), "Ownable: caller is not the owner");
-        _;
-    }
 
     constructor(address _companyWallet, address _teamWallet, address _advisoryWallet, address _communityWallet) ERC20("EIV Token", "EIV") {
+        _owner = address(0);
+
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(MINTER_ROLE, msg.sender);
 
         _unlockedBalance = UNLOCKED_TOKENS;
@@ -68,8 +65,10 @@ contract EIVToken is ERC20, ERC20Burnable, AccessControl {
         teamWallet = _teamWallet;
         advisoryWallet = _advisoryWallet;
         communityWallet = _communityWallet;
+    }
 
-        _transferOwnership(_msgSender());
+    function owner() public view virtual returns (address) {
+        return _owner;
     }
 
     function _calculateUnlockedAmount(uint256 lockedBalance, uint256 lockEndTime, uint256 releasePeriod) internal view returns (uint256) {
@@ -170,23 +169,5 @@ contract EIVToken is ERC20, ERC20Burnable, AccessControl {
         _communityLockedBalance -= communityUnlockedAmount;
         _mint(communityWallet, communityUnlockedAmount);
         emit UnlockCommunityTokens(communityWallet, communityUnlockedAmount);
-    }
-
-    function _msgSender() internal view virtual returns (address) {
-        return msg.sender;
-    }
-
-    function owner() public view virtual returns (address) {
-        return _owner;
-    }
-
-    function renounceOwnership() public virtual onlyOwner {
-        _transferOwnership(address(0));
-    }
-
-    function _transferOwnership(address newOwner) internal virtual {
-        address oldOwner = _owner;
-        _owner = newOwner;
-        emit OwnershipTransferred(oldOwner, newOwner);
     }
 }
