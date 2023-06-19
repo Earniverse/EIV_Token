@@ -1,24 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./EIVToken.sol";
 
-contract MultiSigWallet is Ownable {
+contract MultiSigWallet {
     event SubmitTransaction(address indexed approver, uint256 indexed txIndex, address indexed from, bytes32 data);
     event ConfirmTransaction(address indexed approver, uint256 indexed txIndex, uint256 indexed numConfirmations);
     event RevokeConfirmation(address indexed approver, uint256 indexed txIndex);
     event ExecuteTransaction(address indexed approver, uint256 indexed txIndex);
 
+    address private _owner;
     address[] public approvers;
     mapping(address => bool) public isApprover;
     uint256 public numConfirmationsRequired;
+    uint256 public delay;
 
     struct Transaction {
         address from;
         bytes32 data;
         bool executed;
         uint256 numConfirmations;
+        bool queued;
+        uint256 created;
     }
 
     mapping(uint256 => mapping(address => bool)) public isConfirmed;
@@ -72,7 +75,9 @@ contract MultiSigWallet is Ownable {
             approvers.push(approver);
         }
 
+        _owner = address(0);
         numConfirmationsRequired = _numConfirmationsRequired;
+        delay = 1 days;
     }
 
     function submitTransaction(
@@ -85,7 +90,9 @@ contract MultiSigWallet is Ownable {
                 from: msg.sender,
                 data: _data,
                 executed: false,
-                numConfirmations: 0
+                numConfirmations: 0,
+                queued: false,
+                created: getBlockTimestamp()
             })
         );
 
@@ -113,7 +120,10 @@ contract MultiSigWallet is Ownable {
             "cannot execute tx"
         );
 
+        require(getBlockTimestamp() >= transaction.created + delay, "Timelock::queueTransaction: Estimated execution block must satisfy delay.");
+
         transaction.executed = true;
+        transaction.queued = false;
 
         if (bytes32(transaction.data) == CLAIM) {
             _eivToken.claimTokens();
@@ -158,7 +168,9 @@ contract MultiSigWallet is Ownable {
             address from,
             bytes32 data,
             bool executed,
-            uint256 numConfirmations
+            uint256 numConfirmations,
+            bool queued,
+            uint256 created
         )
     {
         Transaction storage transaction = transactions[_txIndex];
@@ -167,11 +179,22 @@ contract MultiSigWallet is Ownable {
             transaction.from,
             transaction.data,
             transaction.executed,
-            transaction.numConfirmations
+            transaction.numConfirmations,
+            transaction.queued,
+            transaction.created
         );
     }
 
     function getTransactions() public view returns (Transaction[] memory) {
         return transactions;
+    }
+
+    function getBlockTimestamp() internal view returns (uint256) {
+        // solium-disable-next-line security/no-block-members
+        return block.timestamp;
+    }
+
+    function owner() public view virtual returns (address) {
+        return _owner;
     }
 }
