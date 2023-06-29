@@ -42,10 +42,6 @@ contract EIVToken is ERC20, ERC20Burnable, AccessControl {
     event UnlockTeamTokens(address indexed claimer, uint256 price);
     event UnlockAdvisorTokens(address indexed claimer, uint256 price);
     event UnlockCommunityTokens(address indexed claimer, uint256 price);
-    event UpdateCompanyWallet(address indexed previous, address indexed updated);
-    event UpdateTeamWallet(address indexed previous, address indexed updated);
-    event UpdateAdvisoryWallet(address indexed previous, address indexed updated);
-    event UpdatecommunityWallet(address indexed previous, address indexed updated);
 
     constructor(address _companyWallet, address _teamWallet, address _advisoryWallet, address _communityWallet) ERC20("EIV Token", "EIV") {
         _owner = address(0);
